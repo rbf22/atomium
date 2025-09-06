@@ -2,7 +2,6 @@
 
 import msgpack
 import struct
-from collections import deque
 from datetime import datetime
 from .mmcif import get_structure_from_atom, create_entities, split_residue_id
 from .structures import Chain, Ligand

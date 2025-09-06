@@ -5,7 +5,6 @@ import re
 from datetime import datetime
 import numpy as np
 import valerius
-from itertools import groupby
 from .data import CODES, Chain, Residue, Ligand
 
 def mmcif_string_to_mmcif_dict(filestring):

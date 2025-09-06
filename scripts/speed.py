@@ -7,7 +7,6 @@ import json
 from datetime import datetime
 sys.path.append(os.path.join("..", "atomium"))
 import atomium
-import io
 from Bio.PDB import *
 import matplotlib.pyplot as plt
 
