@@ -24,25 +24,26 @@ def pdb_string_to_pdb_dict(filestring):
     :rtype: ``dict``"""
 
     pdb_dict = {}
-    lines = list(filter(lambda l: bool(l.strip()), filestring.split("\n")))
+    lines = list(filter(lambda line: bool(line.strip()), filestring.split("\n")))
     lines = [[line[:6].rstrip(), line.rstrip()] for line in lines]
     model_recs = ("ATOM", "HETATM", "ANISOU", "MODEL", "TER", "ENDMDL")
-    model = []
-    in_model = False
     for head, line in lines:
         if head == "REMARK":
-            if "REMARK" not in pdb_dict: pdb_dict["REMARK"] = {}
+            if "REMARK" not in pdb_dict:
+                pdb_dict["REMARK"] = {}
             number = line.lstrip().split()[1]
             update_dict(pdb_dict["REMARK"], number, line)
         elif head in model_recs:
-            if "MODEL" not in pdb_dict: pdb_dict["MODEL"] = [[]]
+            if "MODEL" not in pdb_dict:
+                pdb_dict["MODEL"] = [[]]
             if head == "ENDMDL":
                 pdb_dict["MODEL"].append([])
             elif head != "MODEL":
                 pdb_dict["MODEL"][-1].append(line)
         else:
             update_dict(pdb_dict, head, line)
-    if "MODEL" in pdb_dict and not pdb_dict["MODEL"][-1]: pdb_dict["MODEL"].pop()
+    if "MODEL" in pdb_dict and not pdb_dict["MODEL"][-1]:
+        pdb_dict["MODEL"].pop()
     return pdb_dict
 
 
@@ -59,7 +60,8 @@ def update_dict(d, key, value):
 
     try:
         d[key].append(value)
-    except: d[key] = [value]
+    except Exception:
+        d[key] = [value]
 
 
 def pdb_dict_to_data_dict(pdb_dict):
@@ -200,7 +202,6 @@ def update_models_list(pdb_dict, data_dict):
         aniso = make_aniso(model_lines)
         last_ter = get_last_ter_line(model_lines)
         model = {"polymer": {}, "non-polymer": {}, "water": {}}
-        count = 0
         for index, line in enumerate(model_lines):
             if line[:6] in ["ATOM  ", "HETATM"]:
                 chain_id = line[21] if index < last_ter else id_from_line(line)
@@ -210,8 +211,8 @@ def update_models_list(pdb_dict, data_dict):
                 else:
                     add_atom_to_non_polymer(line, model, res_id, aniso, full_names)
         
-            for chain_id, chain in model["polymer"].items():
-                chain["sequence"] = sequences.get(chain_id, "")
+            for chain_id, chain_obj in model["polymer"].items():
+                chain_obj["sequence"] = sequences.get(chain_id, "")
         add_secondary_structure_to_polymers(model, secondary_structure)
         add_annotation_to_polymers(model, pdb_dict)
         data_dict["models"].append(model)
@@ -230,7 +231,8 @@ def extract_header(pdb_dict, description_dict):
             description_dict["deposition_date"] = datetime.strptime(
              line[50:59], "%d-%b-%y"
             ).date()
-        if line[62:66].strip(): description_dict["code"] = line[62:66]
+        if line[62:66].strip():
+            description_dict["code"] = line[62:66]
         if line[10:50].strip():
             description_dict["classification"] = line[10:50].strip()
 
@@ -328,7 +330,8 @@ def extract_resolution_remark(pdb_dict, quality_dict):
             try:
                 quality_dict["resolution"] = float(remark[10:].strip().split()[1])
                 break
-            except: pass
+            except Exception:
+                pass
 
 
 def extract_rvalue_remark(pdb_dict, quality_dict):
@@ -349,7 +352,8 @@ def extract_rvalue_remark(pdb_dict, quality_dict):
                 if matches:
                     try:
                         quality_dict[attribute] = float(matches[0].strip())
-                    except: pass
+                    except Exception:
+                        pass
                     break
 
 
@@ -391,9 +395,11 @@ def assembly_lines_to_assembly_dict(lines):
     for line in lines:
         for p in patterns:
             matches = re.findall(p[0], line)
-            if matches: assembly[p[1]] = p[2](matches[0][1].strip())
+            if matches:
+                assembly[p[1]] = p[2](matches[0][1].strip())
         if "APPLY THE FOLLOWING" in line:
-            if t: assembly["transformations"].append(t)
+            if t:
+                assembly["transformations"].append(t)
             t = {"chains": [], "matrix": [], "vector": []}
         if "CHAINS:" in line:
             t["chains"] += [c.strip() for c in
@@ -405,7 +411,8 @@ def assembly_lines_to_assembly_dict(lines):
                 t = {"chains": t["chains"], "matrix": [], "vector": []}
             t["matrix"].append(values[:3])
             t["vector"].append(values[-1])
-    if t: assembly["transformations"].append(t)
+    if t:
+        assembly["transformations"].append(t)
     return assembly
 
 
@@ -472,7 +479,8 @@ def get_full_names(pdb_dict):
     for line in pdb_dict.get("HETNAM", []):
         try:
             full_names[line[11:14].strip()] += line[15:].strip()
-        except: full_names[line[11:14].strip()] = line[15:].strip()
+        except Exception:
+            full_names[line[11:14].strip()] = line[15:].strip()
     return full_names
 
 
@@ -525,7 +533,7 @@ def add_atom_to_polymer(line, model, chain_id, res_id, aniso_dict, full_names):
         model["polymer"][chain_id]["residues"][res_id]["atoms"][
          int(line[6:11])
         ] = atom_line_to_dict(line, aniso_dict)
-    except:
+    except Exception:
         name = line[17:20].strip()
         try:
             model["polymer"][chain_id]["residues"][res_id] = {
@@ -533,7 +541,7 @@ def add_atom_to_polymer(line, model, chain_id, res_id, aniso_dict, full_names):
              "atoms": {int(line[6:11]): atom_line_to_dict(line, aniso_dict)},
              "number": len(model["polymer"][chain_id]["residues"]) + 1
             }
-        except:
+        except Exception:
             model["polymer"][chain_id] = {
              "internal_id": chain_id, "helices": [], "strands": [],
              "residues": {res_id: {
@@ -558,7 +566,7 @@ def add_atom_to_non_polymer(line, model, res_id, aniso_dict, full_names):
         model[key][res_id]["atoms"][
          int(line[6:11])
         ] = atom_line_to_dict(line, aniso_dict)
-    except:
+    except Exception:
         name = line[17:20].strip()
         model[key][res_id] = {
          "name": name, "full_name": full_names.get(name),
@@ -584,13 +592,16 @@ def atom_line_to_dict(line, aniso_dict):
     a["x"] = float(line[30:38].strip())
     a["y"] = float(line[38:46].strip())
     a["z"] = float(line[46:54].strip())
-    if line[54:60].strip(): a["occupancy"] = float(line[54:60].strip())
-    if line[60:66].strip(): a["bvalue"] = float(line[60:66].strip())
+    if line[54:60].strip():
+        a["occupancy"] = float(line[54:60].strip())
+    if line[60:66].strip():
+        a["bvalue"] = float(line[60:66].strip())
     a["element"] = line[76:78].strip() or None
     if line[78:80].strip():
         try:
             a["charge"] = int(line[78:80].strip())
-        except: a["charge"] = int(line[78:80][::-1].strip())
+        except Exception:
+            a["charge"] = int(line[78:80][::-1].strip())
     return a
 
 
@@ -641,7 +652,8 @@ def pack_sequences(structure, lines):
                  line_num + 1, chain.id, length,
                  " ".join(residues[line_num * 13: (line_num + 1) * 13])
                 )]
-    except AttributeError: pass
+    except AttributeError:
+        pass
 
 
 def atom_to_atom_line(a, lines):
@@ -661,7 +673,6 @@ def atom_to_atom_line(a, lines):
         insert_code = id_[-1] if id_ and id_[-1].isalpha() else ""
     atom_name = a._name or ""
     atom_name = " " + atom_name if len(atom_name) < 4 else atom_name
-    occupancy = "  1.00"
     line = line.format(
      "HETATM" if isinstance(a.het, Ligand) or a._is_hetatm else "ATOM",
      a.id, atom_name, residue_name, chain_id, residue_id, insert_code,

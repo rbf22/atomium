@@ -1,6 +1,6 @@
 """Contains logic for turning data dictionaies into a parsed Python objects."""
 
-from .structures import *
+from .structures import Atom, Residue, Ligand, Chain, Model
 
 class File:
     """When a file is parsed, the result is a ``File``. It contains the
@@ -191,7 +191,8 @@ class File:
         
         m = self._models[0]
         for assembly in self._assemblies:
-            if assembly["id"] == id: break
+            if assembly["id"] == id:
+                break
         else:
             raise ValueError(f"No assembly with ID {id}")
         all_structures = []
@@ -205,7 +206,8 @@ class File:
                             copy._chain = structures.get(obj.chain)
                         structures[obj] = copy
             atoms = set()
-            for s in structures.values(): atoms.update(s.atoms())
+            for s in structures.values():
+                atoms.update(s.atoms())
             Atom.transform_atoms(t["matrix"], *atoms)
             Atom.translate_atoms(t["vector"], *atoms)
             all_structures += structures.values()

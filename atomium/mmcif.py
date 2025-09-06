@@ -19,7 +19,7 @@ def mmcif_string_to_mmcif_dict(filestring):
     :param str filestring: the .cif filestring to process.
     :rtype: ``dict``"""
 
-    lines = deque(filter(lambda l: l and l[0] != "#", filestring.split("\n")))
+    lines = deque(filter(lambda line: line and line[0] != "#", filestring.split("\n")))
     lines = consolidate_strings(lines)
     blocks = mmcif_lines_to_mmcif_blocks(lines)
     mmcif_dict = {}
@@ -69,7 +69,8 @@ def mmcif_lines_to_mmcif_blocks(lines):
     block, blocks = [], []
     while lines:
         line = lines.popleft()
-        if line.startswith("data_"): continue
+        if line.startswith("data_"):
+            continue
         if line.startswith("_"):
             line_category = line.split(".")[0]
             if line_category != category:
@@ -83,7 +84,8 @@ def mmcif_lines_to_mmcif_blocks(lines):
             category = lines[0].split(".")[0]
             block = []
         block.append(line)
-    if block: blocks.append({"category": category[1:], "lines": block})
+    if block:
+        blocks.append({"category": category[1:], "lines": block})
     return blocks
 
 
@@ -95,11 +97,10 @@ def non_loop_block_to_list(block):
     :rtype: ``list``"""
 
     d = {}
-    category = block["lines"][0].split(".")[0]
     for index in range(len(block["lines"]) - 1):
         if block["lines"][index + 1][0] != "_":
             block["lines"][index] += " " + block["lines"][index + 1]
-    block["lines"] = [l for l in block["lines"] if l[0] == "_"]
+    block["lines"] = [line for line in block["lines"] if line[0] == "_"]
     for line in block["lines"]:
         name = line.split(".")[1].split()[0]
         value = line
@@ -117,25 +118,25 @@ def loop_block_to_list(block):
     :param dict block: the .cif block to process.
     :rtype: ``list``"""
 
-    names, lines, header = [], [], True
+    names, lines = [], []
     body_start = 0
     for index, line in enumerate(block["lines"][1:], start=1):
         if not line.startswith("_" + block["category"]):
             body_start = index
             break
-    names = [l.split(".")[1].rstrip() for l in block["lines"][1:body_start]]
-    lines = [split_values(l) for l in block["lines"][body_start:]]
-    l = []
+    names = [line.split(".")[1].rstrip() for line in block["lines"][1:body_start]]
+    lines = [split_values(line) for line in block["lines"][body_start:]]
+    table_rows = []
     for n in range(len(lines) - 1):
         while n < len(lines) - 1 and\
          len(lines[n]) + len(lines[n + 1]) <= len(names):
             lines[n] += lines[n + 1]
             lines.pop(n + 1)
     for line in lines:
-        l.append({
+        table_rows.append({
          name: value for name, value in zip(names, line)
         })
-    return l
+    return table_rows
 
 
 def split_values(line):
@@ -149,7 +150,8 @@ def split_values(line):
     :param str line: the .cif line to split.
     :rtype: ``list``"""
 
-    if not re.search("[\'\"]", line): return line.split()
+    if not re.search("[\'\"]", line):
+        return line.split()
     chars = deque(line.strip())
     values, value, in_string = [], [], False
     while chars:
@@ -245,7 +247,8 @@ def update_experiment_dict(mmcif_dict, data_dict):
      ["pdbx_entity_src_syn", "organism_scientific"]]:
         mmcif_to_data_transfer(mmcif_dict, data_dict, "experiment",
          "source_organism", cat, key)
-        if data_dict["experiment"]["source_organism"] not in [None, "?"]: break
+        if data_dict["experiment"]["source_organism"] not in [None, "?"]:
+            break
     mmcif_to_data_transfer(mmcif_dict, data_dict, "experiment",
      "expression_system", "entity_src_gen", "pdbx_host_org_scientific_name")
     for r in mmcif_dict.get("pdbx_unobs_or_zero_occ_residues", []):
@@ -294,7 +297,8 @@ def update_geometry_dict(mmcif_dict, data_dict):
     ] + [float(o["vector[{}]".format(r)])] for r in [1, 2, 3]] + [[0, 0, 0, 1]]
      for o in mmcif_dict.get("pdbx_struct_oper_list", [])}
     for assembly in data_dict["geometry"]["assemblies"]:
-        if assembly["software"] == "?": assembly["software"] = None
+        if assembly["software"] == "?":
+            assembly["software"] = None
         assign_metrics_to_assembly(mmcif_dict, assembly)
         assign_transformations_to_assembly(mmcif_dict, operations, assembly)
     update_crystallography_dict(mmcif_dict, data_dict)
@@ -346,7 +350,8 @@ def get_operation_id_groups(expression):
     :param str expression: The expression to parse.
     :rtype: ``list``"""
 
-    if expression[0] != "(": expression = "({})".format(expression)
+    if expression[0] != "(":
+        expression = "({})".format(expression)
     groups = re.findall(r"\((.+?)\)", expression)
     group_ids = []
     for group in groups:
@@ -414,9 +419,8 @@ def update_models_list(mmcif_dict, data_dict):
     names = {e["id"]: e["name"] for e in mmcif_dict.get("chem_comp", {})
      if e["mon_nstd_flag"] != "y"}
     entities = {
-     m["id"]: m["entity_id"] for m in mmcif_dict.get("struct_asym", []) 
+     m["id"]: m["entity_id"] for m in mmcif_dict.get("struct_asym", [])
     }
-    sequences = make_sequences(mmcif_dict)
     secondary_structure = make_secondary_structure(mmcif_dict)
     aniso = make_aniso(mmcif_dict)
     model = {"polymer": {}, "non-polymer": {}, "water": {}, "branched": {}}
@@ -485,7 +489,7 @@ def add_atom_to_polymer(atom, aniso, model, names):
         model["polymer"][mol_id]["residues"][res_id]["atoms"][
          int(atom["id"])
         ] = atom_dict_to_atom_dict(atom, aniso)
-    except:
+    except Exception:
         name = atom["auth_comp_id"]
         try:
             model["polymer"][mol_id]["residues"][res_id] = {
@@ -493,7 +497,7 @@ def add_atom_to_polymer(atom, aniso, model, names):
              "atoms": {int(atom["id"]) : atom_dict_to_atom_dict(atom, aniso)},
              "number": len(model["polymer"][mol_id]["residues"]) + 1
             }
-        except:
+        except Exception:
             model["polymer"][mol_id] = {
              "internal_id": atom["label_asym_id"], "helices": [], "strands": [],
              "residues": {res_id: {
@@ -519,7 +523,7 @@ def add_atom_to_non_polymer(atom, aniso, model, mol_type, names):
         model[mol_type][mol_id]["atoms"][
          int(atom["id"])
         ] = atom_dict_to_atom_dict(atom, aniso)
-    except:
+    except Exception:
         name = atom["auth_comp_id"]
         model[mol_type][mol_id] = {
          "name": name, "full_name": names.get(name),
@@ -568,9 +572,12 @@ def add_secondary_structure_to_polymers(model, ss_dict):
                 in_segment = False
                 chain[ss].append([])
                 for residue_id in chain["residues"].keys():
-                    if residue_id == segment[0]: in_segment = True
-                    if in_segment: chain[ss][-1].append(residue_id)
-                    if residue_id == segment[1]: break
+                    if residue_id == segment[0]:
+                        in_segment = True
+                    if in_segment:
+                        chain[ss][-1].append(residue_id)
+                    if residue_id == segment[1]:
+                        break
             
 
 def make_sequences(mmcif_dict):
@@ -602,7 +609,8 @@ def atom_dict_to_atom_dict(d, aniso_dict):
      "anisotropy": aniso_dict.get(int(d["id"]), [0, 0, 0, 0, 0, 0]), "is_hetatm": False
     }
     for key in ["x", "y", "z", "charge", "bvalue", "occupancy"]:
-        if atom[key] is not None: atom[key] = float(atom[key])
+        if atom[key] is not None:
+            atom[key] = float(atom[key])
     return atom
 
 
@@ -627,11 +635,15 @@ def mmcif_to_data_transfer(mmcif_dict, data_dict, d_cat, d_key, m_table, m_key,
             value = [row[m_key] for row in mmcif_dict[m_table]]
         else:
             value = mmcif_dict[m_table][0][m_key]
-        if date: value = datetime.strptime(value, "%Y-%m-%d").date()
-        if split: value = value.replace(", ", ",").split(",")
-        if func: value = func(value)
+        if date:
+            value = datetime.strptime(value, "%Y-%m-%d").date()
+        if split:
+            value = value.replace(", ", ",").split(",")
+        if func:
+            value = func(value)
         data_dict[d_cat][d_key] = None if value == "?" else value
-    except: pass
+    except Exception:
+        pass
 
 
 def structure_to_mmcif_string(structure):
@@ -663,7 +675,8 @@ def structure_to_mmcif_string(structure):
     update_lines_with_entities(lines, entities)
     update_lines_with_structures(lines, chains, ligands, waters, entities)
     lines += atom_lines
-    if len(aniso_lines) > 9: lines += aniso_lines
+    if len(aniso_lines) > 9:
+        lines += aniso_lines
     return "\n".join(lines)
 
 
@@ -738,13 +751,18 @@ def create_entities(chains, ligands, waters):
     entities = []
     for chain in sorted(chains, key=lambda c: c.id):
         for e in entities:
-            if isinstance(e, Chain) and e.sequence == chain.sequence: break
-        else: entities.append(chain)
-    for ligand in sorted(ligands, key=lambda l: l.chain.id):
+            if isinstance(e, Chain) and e.sequence == chain.sequence:
+                break
+        else:
+            entities.append(chain)
+    for ligand in sorted(ligands, key=lambda lig: lig.chain.id):
         for e in entities:
-            if isinstance(e, Ligand) and e._name == ligand._name: break
-        else: entities.append(ligand)
-    if len(waters): entities.append(list(waters)[0])
+            if isinstance(e, Ligand) and e._name == ligand._name:
+                break
+        else:
+            entities.append(ligand)
+    if len(waters):
+        entities.append(list(waters)[0])
     return entities
 
 
@@ -779,13 +797,12 @@ def update_lines_with_structures(lines, chains, ligands, waters, entities):
     :param list entities: the entities to pack."""
 
     lines += ["#", "loop_", "_struct_asym.id", "_struct_asym.entity_id"]
-    struct_num = 1
     for chain in sorted(chains, key=lambda c: c._internal_id):
         for i, entity in enumerate(entities, start=1):
             if isinstance(entity, Chain) and entity.sequence == chain.sequence:
                 lines.append("{} {}".format(chain._internal_id, i))
                 break
-    for ligand in sorted(ligands, key=lambda l: l._internal_id):
+    for ligand in sorted(ligands, key=lambda lig: lig._internal_id):
         for i, entity in enumerate(entities, start=1):
             if isinstance(entity, Ligand) and entity._name == ligand._name:
                 lines.append("{} {}".format(ligand._internal_id, i))
