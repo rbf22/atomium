@@ -29,7 +29,8 @@ def decode_dict(d):
     for key, value in d.items():
         try:
             new_value = value.decode()
-        except: new_value = value
+        except Exception:
+            new_value = value
         if isinstance(new_value, str) and new_value and new_value[0] == "\x00":
             new_value = new_value.encode()
         if isinstance(new_value, bytes):
@@ -53,11 +54,16 @@ def parse_binary_field(b):
 
 
     codec, length, params = struct.unpack(">iii", b[:12])
-    len4 = lambda b: int(len(b[12:]) / 4)
-    if codec == 1: return struct.unpack("f" * length, b[12:])
-    elif codec == 2: return struct.unpack("b" * length, b[12:])
-    elif codec == 3: return struct.unpack(">" + "h" * length, b[12:])
-    elif codec == 4: return struct.unpack(">" + "i" * length, b[12:])
+    def len4(b):
+        return int(len(b[12:]) / 4)
+    if codec == 1:
+        return struct.unpack("f" * length, b[12:])
+    elif codec == 2:
+        return struct.unpack("b" * length, b[12:])
+    elif codec == 3:
+        return struct.unpack(">" + "h" * length, b[12:])
+    elif codec == 4:
+        return struct.unpack(">" + "i" * length, b[12:])
     elif codec == 5:
         chars = struct.unpack("c" * (length * 4), b[12:])
         return [b"".join([
@@ -78,7 +84,8 @@ def parse_binary_field(b):
     elif codec == 10:
         integers = struct.unpack(">" + ("h" * int(len(b[12:]) / 2)), b[12:])
         return [n / params for n in delta_decode(recursive_decode(integers))]
-    else: raise ValueError(".mmtf error: {} is invalid codec".format(codec))
+    else:
+        raise ValueError(".mmtf error: {} is invalid codec".format(codec))
 
 
 def run_length_decode(integers):
@@ -127,7 +134,8 @@ def recursive_decode(integers, bits=16):
         while integers[index] in cutoff:
             value += integers[index]
             index += 1
-            if integers[index] == 0: break
+            if integers[index] == 0:
+                break
         value += integers[index]
         index += 1
         new.append(value)
@@ -320,7 +328,8 @@ def add_het_to_dict(group, chain, atoms, d, number=None):
     het_atoms = {a["id"]: {
      "anisotropy": [0] * 6, **a, **g_a
     } for a, g_a in zip(het_atoms, group["atoms"])}
-    for a in het_atoms.values(): del a["id"]
+    for a in het_atoms.values():
+        del a["id"]
     het = {
      "name": group["name"], "atoms": het_atoms, "full_name": None,
      "secondary_structure": group["secondary_structure"]
@@ -349,8 +358,10 @@ def add_ss_to_chain(chain):
             in_ss[ss] = True
             chain[ss][-1].append(res_id)
         else:
-            if in_ss["helices"]: in_ss["helices"] = False
-            if in_ss["strands"]: in_ss["strands"] = False
+            if in_ss["helices"]:
+                in_ss["helices"] = False
+            if in_ss["strands"]:
+                in_ss["strands"] = False
         del res["secondary_structure"]
 
 
@@ -370,14 +381,18 @@ def mmtf_to_data_transfer(mmtf_dict, data_dict, d_cat, d_key, m_key,
 
     try:
         value = mmtf_dict[m_key]
-        if date: value = datetime.strptime(value, "%Y-%m-%d").date()
-        if first: value = value[0]
+        if date:
+            value = datetime.strptime(value, "%Y-%m-%d").date()
+        if first:
+            value = value[0]
         if trim:
             try:
                 value = [round(v, trim) for v in value]
-            except: value = round(value, trim)
+            except Exception:
+                value = round(value, trim)
         data_dict[d_cat][d_key] = value
-    except: pass
+    except Exception:
+        pass
 
 
 def structure_to_mmtf_string(structure):
@@ -394,7 +409,7 @@ def structure_to_mmtf_string(structure):
     groups_per_chain = get_groups_per_chain(chains, ligands, waters)
     group_types, group_ids, groups, ins = get_groups(chains, ligands, waters)
     x, y, z, alt, bfactor, ids, occupancy = zip(*properties)
-    chain_count = len(chains) + len(ligands) + len(set(l.chain for l in waters))
+    chain_count = len(chains) + len(ligands) + len(set(w.chain for w in waters))
     d = {
      "numModels": 1, "numChains": chain_count, "chainsPerModel": [chain_count],
      "xCoordList": x, "yCoordList": y, "zCoordList": z, "altLocList": alt,
@@ -421,7 +436,7 @@ def get_structures(structure):
          "", atom.bvalue, atom.id, 1
         ])
     chains = sorted(chains, key=lambda c: c._internal_id)
-    ligands = sorted(ligands, key=lambda l: l._internal_id)
+    ligands = sorted(ligands, key=lambda lig: lig._internal_id)
     waters = sorted(waters, key=lambda w: w._internal_id)
     entities = create_entities(chains, ligands, waters)
     return (chains, ligands, waters, atom_properties, entities)
@@ -445,7 +460,7 @@ def get_entity_list(entities, chains, ligands, waters):
             ], "sequence": e.sequence})
         elif isinstance(e, Ligand) and not e.is_water:
             entity_list.append({"type": "non-polymer", "chainIndexList": [
-             i + len(chains) for i, l in enumerate(ligands) if l._name == e._name
+             i + len(chains) for i, lig in enumerate(ligands) if lig._name == e._name
             ]})
         else:
             water_chains = set(w.chain for w in waters)

@@ -32,7 +32,8 @@ def get_object_attribute_from_filter(obj, components):
         return getattr(
          obj, components[-1] if hasattr(obj, components[-1]) else components[-2]
         )
-    except: return None
+    except Exception:
+        return None
 
 
 def attribute_matches_value(attribute, value, components):
@@ -117,7 +118,8 @@ def getone(func):
     :rtype: ``function``"""
 
     def structure(self, *args, **kwargs):
-        for obj in func(self, *args, **kwargs): return obj
+        for obj in func(self, *args, **kwargs):
+            return obj
     return structure
 
 
@@ -196,7 +198,8 @@ class StructureSet:
         :rtype: ``list``"""
 
         structures = []
-        for s in self._d.values(): structures += s
+        for s in self._d.values():
+            structures += s
         return structures
 
 
@@ -207,4 +210,5 @@ class StructureSet:
         :returns: some structure."""
 
         matches = self._d.get(id, set())
-        for match in matches: return match
+        for match in matches:
+            return match
