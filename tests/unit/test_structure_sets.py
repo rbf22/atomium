@@ -1,5 +1,5 @@
 from unittest import TestCase
-from unittest.mock import Mock, patch, PropertyMock, MagicMock
+from unittest.mock import Mock
 from atomium.base import StructureSet
 
 class StructureSetTest(TestCase):

@@ -40,62 +40,53 @@ Example
 Installing
 ----------
 
-pip
-~~~
+You can install atomium from PyPI using pip:
 
-atomium can be installed using pip:
+.. code-block:: console
 
-``$ pip3 install atomium``
+   $ pip install atomium
 
-atomium is written for Python 3, and does not support Python 2.
-
-If you get permission errors, try using ``sudo``:
-
-``$ sudo pip3 install atomium``
+This is the recommended way to install atomium for general use.
 
 
 Development
-~~~~~~~~~~~
+-----------
 
-The repository for atomium, containing the most recent iteration, can be
-found `here <http://github.com/samirelanduk/atomium/>`_. To clone the
-atomium repository directly from there, use:
+This project uses Poetry for dependency management. To set up a development
+environment, you will need to have Poetry installed.
 
-``$ git clone git://github.com/samirelanduk/atomium.git``
+1. **Clone the repository:**
 
+   .. code-block:: console
 
-Requirements
-~~~~~~~~~~~~
+      $ git clone https://github.com/samirelanduk/atomium.git
+      $ cd atomium
 
-atomium requires `requests <http://docs.python-requests.org/>`_ for fetching
-structures from the RCSB, `paramiko <http://www.paramiko.org//>`_ for
-fetching structures over SSH,
-`msgpack <https://github.com/msgpack/msgpack-python>`_ for parsing .mmtf files,
-and `valerius <https://valerius.samireland.com>`_ for dealing with sequences.
+2. **Install dependencies:**
+
+   .. code-block:: console
+
+      $ poetry install
+
+   This will install all the dependencies required for development and testing.
+
+3. **Activate the virtual environment:**
+
+   .. code-block:: console
+
+      $ poetry shell
 
 
 Testing
-~~~~~~~
+-------
 
-To test a local version of atomium, cd to the atomium directory and run:
+To run the test suite, use the ``test`` command in the Makefile:
 
-``$ python -m unittest discover tests``
+.. code-block:: console
 
-You can opt to only run unit tests or integration tests:
+   $ make test
 
-``$ python -m unittest discover tests.unit``
-``$ python -m unittest discover tests.integration``
-
-You can run the 'big test' to get a random 1000 structures, parse them all, and
-report any problems:
-
-``$ python tests/big.py``
-
-Finally, to perform speed profiles you can run:
-
-``$ python tests/time/time.py``
-
-...which creates various profiles that SnakeViz can visualise.
+This will run all the tests using pytest and generate a coverage report.
 
 
 

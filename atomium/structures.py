@@ -5,7 +5,7 @@ import rmsd
 import math
 import warnings
 from scipy.spatial.distance import cdist
-from collections import Counter, OrderedDict, defaultdict
+from collections import Counter, defaultdict
 from .base import StructureClass, query, StructureSet
 
 class AtomStructure:
