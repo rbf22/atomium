@@ -31,4 +31,5 @@ for filename in files:
     # Tidy up
     try:
         os.remove("tests/time/{}.py".format(filename))
-    except: pass
+    except FileNotFoundError:
+        pass

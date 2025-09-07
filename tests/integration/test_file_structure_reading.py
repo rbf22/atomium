@@ -294,7 +294,8 @@ class DeNovoStructureTests(TestCase):
         # Check chain magic methods
         self.assertEqual(chain1.length, 3)
         self.assertIs(chain1[0], res1)
-        for res in chain1: self.assertIn(res, (res1, res2, res3))
+        for res in chain1:
+            self.assertIn(res, (res1, res2, res3))
         self.assertIn(res1, chain1)
         self.assertIn(atom10, chain1)
 
@@ -518,7 +519,8 @@ class FileReadingTests(TestCase):
             self.assertTrue(chaina.sequence.endswith("LADNPAAAAAGIIESIKDLLIPE"))
             self.assertTrue(chainb.sequence.startswith("LRSRRVDVMDVMNRLILAMDL"))
             self.assertTrue(chainb.sequence.endswith("LADNPAAAAAGIIESIKDLLIPE"))
-            for res in chaina: self.assertIn(res, chaina)
+            for res in chaina:
+                self.assertIn(res, chaina)
             self.assertEqual(len(chaina.residues()), 204)
             self.assertIsInstance(chaina.residues(), tuple)
             self.assertEqual(len(chaina.ligands()), 2)
@@ -608,7 +610,8 @@ class FileReadingTests(TestCase):
             self.assertEqual(len(model.molecules(mass__gt=90, mass__lt=1000)), 2)
 
             for optimise in [False, True]:
-                if optimise: model.optimise_distances()
+                if optimise:
+                    model.optimise_distances()
                 atom = model.atom(1587 if e.startswith("pdb") else 1586)
                 four_angstrom = atom.nearby_atoms(cutoff=4)
                 self.assertEqual(len(four_angstrom), 10)
