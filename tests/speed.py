@@ -7,7 +7,7 @@ import json
 from datetime import datetime
 sys.path.append(os.path.join("..", "atomium"))
 import atomium
-from Bio.PDB import *
+from Bio.PDB import PDBParser
 import matplotlib.pyplot as plt
 
 def get_string(code):
@@ -50,7 +50,7 @@ if len(sys.argv) > 1 and sys.argv[1] == "--rebuild":
                     d["atoms"] = len(pdb.model.atoms())
                 if "models" not in d:
                     d["models"] = len(pdb.models)
-            except:
+            except Exception:
                 d[ext] = None
 
         if d[".pdb"]:
@@ -61,17 +61,18 @@ if len(sys.argv) > 1 and sys.argv[1] == "--rebuild":
                 end = datetime.now()
                 delta = end - start
                 d["biopython"] = delta.total_seconds()
-            except:
+            except Exception:
                 d["biopython"] = None
              
             try:
-                with open("temp.pdb", "w") as f: f.write(string)
+                with open("temp.pdb", "w") as f:
+                    f.write(string)
                 start = datetime.now()
-                subprocess.check_output("scripts/readapdb temp.pdb", shell=True)
+                subprocess.check_output("tests/readapdb temp.pdb", shell=True)
                 end = datetime.now()
                 delta = end - start
                 d["bioplib"] = delta.total_seconds()
-            except:
+            except Exception:
                 d["bioplib"] = None
 
         else:
@@ -84,11 +85,11 @@ if len(sys.argv) > 1 and sys.argv[1] == "--rebuild":
         for f in ["temp.pdb", "temp.cif", "temp.mmtf"]:
             if os.path.exists(f):
                 os.remove(f)
-        with open("scripts/speed.json", "w") as f:
+        with open("tests/speed.json", "w") as f:
             json.dump(data, f)
 
 
-with open("scripts/speed.json") as f:
+with open("tests/speed.json") as f:
     data = json.load(f)
 
 print("There are {} data points".format(len(data)))
@@ -125,7 +126,7 @@ plt.ylabel("Parse time (s)")
 plt.xlim([100, 1000000])
 plt.ylim([0.001, 100])
 plt.legend(loc=2)
-plt.savefig("scripts/format-speed.png", dpi=1000)
+plt.savefig("tests/format-speed.png", dpi=1000)
 plt.clf()
 
 
@@ -139,6 +140,6 @@ plt.ylabel("Parse time (s)")
 plt.xlim([100, 100000])
 plt.ylim([0.001, 10])
 plt.legend(loc=2)
-plt.savefig("scripts/library-speed.png", dpi=1000)
+plt.savefig("tests/library-speed.png", dpi=1000)
 plt.clf()
 

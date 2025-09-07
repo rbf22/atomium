@@ -13,25 +13,39 @@ class AtomStructure:
     on a ``atoms()`` method, which the inheriting object must supply itself. All
     atomic structures also have IDs and names.
 
-    Two atomic structures are equal if every pairwise atom in their pairing
-    are equal.
-
     The class would never be instantiated directly."""
 
     def __init__(self, id=None, name=None):
+        """Creates an AtomStructure.
+
+        :param id: The structure's ID.
+        :param str name: The structure's name."""
+
         self._id, self._name = id, name
 
 
     def __eq__(self, other):
+        """Checks if this atomic structure is equal to another.
+
+        Two atomic structures are equal if every pairwise atom in their pairing
+        are equal.
+
+        :param AtomStructure other: the structure to compare to.
+        :rtype: ``bool``"""
+
         try:
             mapping = self.pairing_with(other)
             for atom1, atom2 in mapping.items():
-                if not atom1 == atom2: return False
+                if not atom1 == atom2:
+                    return False
             return True
-        except: return False
+        except Exception:
+            return False
 
 
     def __hash__(self):
+        """Returns the hash of the structure, which is its memory address."""
+
         return id(self)
 
 
@@ -126,8 +140,7 @@ class AtomStructure:
         least the same every time two structures are aligned.
 
         :param AtomStructure structure: the structure to pair with.
-        :raises ValueError: if the other structure has a different number of\
-        atoms.
+        :raises ValueError: if the other structure has a different number of atoms.
         :rtype: ``dict``"""
 
         atoms = self.atoms()
@@ -145,8 +158,8 @@ class AtomStructure:
             atoms.remove(id_atoms[id_])
             other_atoms.remove(id_other_atoms[id_])
         atoms, other_atoms = list(atoms), list(other_atoms)
-        for l in atoms, other_atoms:
-            l.sort(key=lambda a: (
+        for atom_list in atoms, other_atoms:
+            atom_list.sort(key=lambda a: (
              a._id, a._element, a._name, id(a)
             ))
         return {**pair, **{a1: a2 for a1, a2 in zip(atoms, other_atoms)}}
@@ -157,8 +170,7 @@ class AtomStructure:
         another.
 
         :param AtomStructure structure: the structure to check against.
-        :raises ValueError: if the other structure has a different number of\
-        atoms.
+        :raises ValueError: if the other structure has a different number of atoms.
         :rtype: ``float``"""
 
         pairing = self.pairing_with(structure)
@@ -176,8 +188,7 @@ class AtomStructure:
         those points, and the grid will be a box.
 
         :param int size: The spacing between grid points. The default is 1.
-        :param int margin: How far to extend the grid beyond the structure\
-        coordinates. The default is 0.
+        :param int margin: How far to extend the grid beyond the structure coordinates. The default is 0.
         :rtype: ``tuple``"""
 
         atom_locations = [atom.location for atom in self.atoms()]
@@ -186,8 +197,10 @@ class AtomStructure:
             coordinates = [loc[dimension] for loc in atom_locations]
             min_, max_ = min(coordinates) - margin, max(coordinates) + margin
             values = [0]
-            while values[0] > min_: values.insert(0, values[0] - size)
-            while values[-1] < max_: values.append(values[-1] + size)
+            while values[0] > min_:
+                values.insert(0, values[0] - size)
+            while values[-1] < max_:
+                values.append(values[-1] + size)
             dimension_values.append(values)
         for x in dimension_values[0]:
             for y in dimension_values[1]:
@@ -205,7 +218,8 @@ class AtomStructure:
                 unique_ids = set(ids)
                 if len(ids) != len(unique_ids):
                     warnings.warn(f"{objects} have duplicate IDs")
-            except AttributeError: pass
+            except AttributeError:
+                pass
 
 
     def save(self, path):
@@ -338,14 +352,13 @@ class AtomStructure:
         :param Number dx: The distance to move in the x direction.
         :param Number dy: The distance to move in the y direction.
         :param Number dz: The distance to move in the z direction.
-        :param int trim: The amount of rounding to do to the atoms' coordinates\
-        after translating - the default is 12 decimal places but this can be\
-        set to ``None`` if no rounding is to be done."""
+        :param int trim: The amount of rounding to do to the atoms' coordinates after translating - the default is 12 decimal places but this can be set to ``None`` if no rounding is to be done."""
 
         try:
-            _,_,_ = dx
+            _, _, _ = dx
             vector = dx
-        except TypeError: vector = (dx, dy, dz)
+        except TypeError:
+            vector = (dx, dy, dz)
         Atom.translate_atoms(vector, *self.atoms())
         self.trim(trim)
 
@@ -354,12 +367,8 @@ class AtomStructure:
         """Transforms the structure using a 3x3 matrix supplied. This is useful
         if the :py:meth:`.rotate` method isn't powerful enough for your needs.
 
-        :param array matrix: A NumPy matrix representing the transformation.\
-        You can supply a list of lists if you like and it will be converted to\
-        a NumPy matrix.
-        :param int trim: The amount of rounding to do to the atoms' coordinates\
-        after transforming - the default is 12 decimal places but this can be\
-        set to ``None`` if no rounding is to be done."""
+        :param array matrix: A NumPy matrix representing the transformation. You can supply a list of lists if you like and it will be converted to a NumPy matrix.
+        :param int trim: The amount of rounding to do to the atoms' coordinates after transforming - the default is 12 decimal places but this can be set to ``None`` if no rounding is to be done."""
 
         Atom.transform_atoms(matrix, *self.atoms())
         self.trim(trim)
@@ -371,9 +380,7 @@ class AtomStructure:
 
         :param Number angle: The angle in radians.
         :param str axis: The axis to rotate around. Can only be 'x', 'y' or 'z'.
-        :param int trim: The amount of rounding to do to the atoms' coordinates\
-        after translating - the default is 12 decimal places but this can be\
-        set to ``None`` if no rounding is to be done."""
+        :param int trim: The amount of rounding to do to the atoms' coordinates after translating - the default is 12 decimal places but this can be set to ``None`` if no rounding is to be done."""
 
         Atom.rotate_atoms(angle, axis, *self.atoms())
         self.trim(trim)
@@ -383,8 +390,7 @@ class AtomStructure:
         """Rounds the coordinate values to a given number of decimal places.
         Useful for removing floating point rounding errors after transformation.
 
-        :param int places: The number of places to round the coordinates to. If\
-        ``None``, no rounding will be done."""
+        :param int places: The number of places to round the coordinates to. If ``None``, no rounding will be done."""
 
         for atom in self.atoms():
             atom.trim(places)
@@ -397,6 +403,12 @@ class Molecule(AtomStructure):
     standard ID."""
 
     def __init__(self, id, name, internal_id):
+        """Creates a Molecule.
+
+        :param id: The molecule's ID.
+        :param str name: The molecule's name.
+        :param str internal_id: The molecule's internal ID."""
+
         AtomStructure.__init__(self, id, name)
         self._internal_id = internal_id
         self._model = None
@@ -431,9 +443,17 @@ class Het(AtomStructure):
     from atomium import data as __data
 
     def __init__(self, id, name, full_name, *atoms):
+        """Creates a Het.
+
+        :param id: The het's ID.
+        :param str name: The het's name.
+        :param str full_name: The het's full name.
+        :param *atoms: The atoms that make up the het."""
+
         AtomStructure.__init__(self, id, name)
         self._full_name = full_name
-        for atom in atoms: atom._het = self
+        for atom in atoms:
+            atom._het = self
         self._atoms = StructureSet(*atoms)
 
 
@@ -449,7 +469,8 @@ class Het(AtomStructure):
 
         :rtype: ``str``"""
 
-        if self._full_name: return self._full_name
+        if self._full_name:
+            return self._full_name
         return self.__data.FULL_NAMES.get(self._name, self._name)
     
 
@@ -481,12 +502,14 @@ class Model(AtomStructure, metaclass=StructureClass):
     """The universe in which all other molecules live, interact, and generally
     exist.
 
-    It is a cotainer of its molecules, residues, and atoms.
-
-    :param \*molecules: The chains, ligands, and waters that will inhabit the\
-    model."""
+    It is a cotainer of its molecules, residues, and atoms."""
 
     def __init__(self, *molecules, file=None):
+        """Creates a Model.
+
+        :param *molecules: The chains, ligands, and waters that will inhabit the model.
+        :param File file: The file the model came from."""
+
         AtomStructure.__init__(self, None, None)
         self._chains = set()
         self._ligands = set()
@@ -505,9 +528,11 @@ class Model(AtomStructure, metaclass=StructureClass):
 
     def __repr__(self):
         chains = "{} chains".format(len(self._chains))
-        if len(self._chains) == 1: chains = chains[:-1]
+        if len(self._chains) == 1:
+            chains = chains[:-1]
         ligands = "{} ligands".format(len(self._ligands))
-        if len(self._ligands) == 1: ligands = ligands[:-1]
+        if len(self._ligands) == 1:
+            ligands = ligands[:-1]
         return "<Model ({}, {})>".format(chains, ligands)
 
 
@@ -575,7 +600,7 @@ class Model(AtomStructure, metaclass=StructureClass):
         for mol in self.molecules():
             try:
                 atoms.update(mol._atoms.structures)
-            except:
+            except AttributeError:
                 for res in mol._residues.structures:
                     atoms.update(res._atoms.structures)
         return StructureSet(*atoms)
@@ -609,21 +634,24 @@ class Chain(Molecule, metaclass=StructureClass):
     """A sequence of residues. Unlike other structures, they are iterable, and
     have a length.
 
-    Residues can also be accessed using indexing.
-
-    :param \*residues: The residues that will make up the chain.
-    :param str id: the chain's unique ID.
-    :param str internal_id: the internal ID used for transformations.
-    :param str sequence: the actual sequence the chain should have.
-    :param list helices: the alpha helices within the chain.
-    :param list strands: the beta strands within the chain."""
+    Residues can also be accessed using indexing."""
 
     def __init__(self, *residues, sequence="", helices=None, strands=None, information=None, **kwargs):
+        """Creates a Chain.
+
+        :param *residues: The residues that will make up the chain.
+        :param str id: the chain's unique ID.
+        :param str internal_id: the internal ID used for transformations.
+        :param str sequence: the actual sequence the chain should have.
+        :param list helices: the alpha helices within the chain.
+        :param list strands: the beta strands within the chain."""
+
         Molecule.__init__(
          self, kwargs.get("id"), kwargs.get("name"), kwargs.get("internal_id")
         )
         self._sequence = sequence
-        for res in residues: res._chain = self
+        for res in residues:
+            res._chain = self
         self._residues = StructureSet(*residues)
         self._model = None
         self._helices = helices or []
@@ -713,10 +741,8 @@ class Chain(Molecule, metaclass=StructureClass):
         """Creates a copy of the chain, with new atoms and residues.
 
         :param str id: if given, the ID of the new chain.
-        :param function residue_ids: a callable which, if given, will generate\
-        new residue IDs.
-        :param function atom_ids: a callable which, if given, will generate new\
-        atom IDs.
+        :param function residue_ids: a callable which, if given, will generate new residue IDs.
+        :param function atom_ids: a callable which, if given, will generate new atom IDs.
         :rtype: ``Chain``"""
 
         residue_ids = residue_ids or (lambda i: i)
@@ -748,7 +774,10 @@ class Chain(Molecule, metaclass=StructureClass):
         :rtype: ``set``"""
 
         return StructureSet() if self._model is None else StructureSet(
-         *[l for l in self._model._ligands.structures if l._chain is self]
+         *[
+          ligand for ligand in self._model._ligands.structures
+          if ligand._chain is self
+         ]
         )
 
 
@@ -765,16 +794,18 @@ class Chain(Molecule, metaclass=StructureClass):
 
 
 class Ligand(Molecule, Het, metaclass=StructureClass):
-    """A small molecule, usually associated with a polymer chain.
-
-    :param \*atoms: The atoms that will make up the ligand.
-    :param str id: the ligand's unique ID.
-    :param str name: the ligand's name.
-    :param str internal_id: the internal ID used for transformations.
-    :param Chain chain: the chain the ligand is associated with.
-    :param bool water: if ``True``, the ligand will be treated as water."""
+    """A small molecule, usually associated with a polymer chain."""
 
     def __init__(self, *atoms, chain=None, water=False, **kwargs):
+        """Creates a Ligand.
+
+        :param *atoms: The atoms that will make up the ligand.
+        :param str id: the ligand's unique ID.
+        :param str name: the ligand's name.
+        :param str internal_id: the internal ID used for transformations.
+        :param Chain chain: the chain the ligand is associated with.
+        :param bool water: if ``True``, the ligand will be treated as water."""
+
         Het.__init__(
         self, kwargs.get("id"), kwargs.get("name"),
          kwargs.get("full_name"), *atoms)
@@ -802,8 +833,7 @@ class Ligand(Molecule, Het, metaclass=StructureClass):
         """Creates a copy of the ligand, with new atoms.
 
         :param str id: if given, the ID of the new ligand.
-        :param function atom_ids: a callable which, if given, will generate new\
-        atom IDs.
+        :param function atom_ids: a callable which, if given, will generate new atom IDs.
         :rtype: ``Ligand``"""
 
         atoms = list(self.atoms())
@@ -818,15 +848,17 @@ class Ligand(Molecule, Het, metaclass=StructureClass):
 
 
 class Residue(Het, metaclass=StructureClass):
-    """A small subunit within a chain.
-
-    :param \*atoms: The atoms the residue is to be made of.
-    :param str id: The residue's ID.
-    :param str name: The residue's name."""
+    """A small subunit within a chain."""
 
     from atomium import data as __data
 
     def __init__(self, *atoms, **kwargs):
+        """Creates a Residue.
+
+        :param *atoms: The atoms the residue is to be made of.
+        :param str id: The residue's ID.
+        :param str name: The residue's name."""
+
         Het.__init__(self, kwargs.get("id"), kwargs.get("name"),
          kwargs.get("full_name"), *atoms)
         self._next, self._previous = None, None
@@ -854,7 +886,8 @@ class Residue(Het, metaclass=StructureClass):
     @next.setter
     def next(self, next):
         if next is None:
-            if self._next: self._next._previous = None
+            if self._next:
+                self._next._previous = None
             self._next = None
         elif next is self:
             raise ValueError("Cannot link {} to itself".format(self))
@@ -879,7 +912,8 @@ class Residue(Het, metaclass=StructureClass):
     @previous.setter
     def previous(self, previous):
         if previous is None:
-            if self._previous: self._previous._next = None
+            if self._previous:
+                self._previous._next = None
             self._previous = None
         elif previous is self:
             raise ValueError("Cannot link {} to itself".format(self))
@@ -906,7 +940,8 @@ class Residue(Het, metaclass=StructureClass):
 
         if self.chain:
             for helix in self.chain.helices:
-                if self in helix: return True
+                if self in helix:
+                    return True
         return False
     
 
@@ -918,7 +953,8 @@ class Residue(Het, metaclass=StructureClass):
 
         if self.chain:
             for strand in self.chain.strands:
-                if self in strand: return True
+                if self in strand:
+                    return True
         return False
 
 
@@ -926,8 +962,7 @@ class Residue(Het, metaclass=StructureClass):
         """Creates a copy of the residue, with new atoms.
 
         :param str id: if given, the ID of the new residue.
-        :param function atom_ids: a callable which, if given, will\
-        generate new atom IDs.
+        :param function atom_ids: a callable which, if given, will generate new atom IDs.
         :rtype: ``Residue``"""
 
         atoms = list(self.atoms())
@@ -948,7 +983,8 @@ class Residue(Het, metaclass=StructureClass):
 
         try:
             return self._chain._model
-        except AttributeError: return None
+        except AttributeError:
+            return None
 
 
 
@@ -957,17 +993,7 @@ class Atom:
 
     Atoms are the building blocks of all structures in atomium.
 
-    Two atoms are equal if they have the same properties (not including ID).
-
-    :param str element: The atom's elemental symbol.
-    :param number x: The atom's x coordinate.
-    :param number y: The atom's y coordinate.
-    :param number z: The atom's z coordinate.
-    :param int id: An integer ID for the atom.
-    :param str name: The atom's name.
-    :param number charge: The charge of the atom.
-    :param number bvalue: The B-value of the atom (its uncertainty).
-    :param list anisotropy: The directional uncertainty of the atom."""
+    Two atoms are equal if they have the same properties (not including ID)."""
 
     from atomium import data as __data
 
@@ -977,6 +1003,18 @@ class Atom:
     ]
 
     def __init__(self, element, x, y, z, id, name, charge, bvalue, anisotropy, is_hetatm=False):
+        """Creates an Atom.
+
+        :param str element: The atom's elemental symbol.
+        :param number x: The atom's x coordinate.
+        :param number y: The atom's y coordinate.
+        :param number z: The atom's z coordinate.
+        :param int id: An integer ID for the atom.
+        :param str name: The atom's name.
+        :param number charge: The charge of the atom.
+        :param number bvalue: The B-value of the atom (its uncertainty).
+        :param list anisotropy: The directional uncertainty of the atom."""
+
         self._location = np.array([x, y, z])
         self._element = element
         self._id, self._name, self._charge = id, name, charge
@@ -993,11 +1031,21 @@ class Atom:
 
 
     def __eq__(self, other):
-        if not isinstance(other, Atom): return False
+        """Checks if this atom is equal to another.
+
+        Two atoms are equal if they have the same properties (not including ID).
+
+        :param Atom other: the atom to compare to.
+        :rtype: ``bool``"""
+
+        if not isinstance(other, Atom):
+            return False
         for attr in self.__slots__:
             if attr not in ("_id", "_het", "_bonded_atoms", "_location"):
-                if getattr(self, attr) != getattr(other, attr): return False
-            if list(self._location) != list(other._location): return False
+                if getattr(self, attr) != getattr(other, attr):
+                    return False
+            if list(self._location) != list(other._location):
+                return False
         return True
 
 
@@ -1010,7 +1058,7 @@ class Atom:
         """Translates multiple atoms using some vector.
 
         :param vector: the three values representing the delta position.
-        :param \*atoms: the atoms to translate."""
+        :param *atoms: the atoms to translate."""
 
         for atom in atoms:
             atom._location += np.array(vector)
@@ -1021,7 +1069,7 @@ class Atom:
         """Transforms multiple atoms using some matrix.
 
         :param matrix: the transformation matrix.
-        :param \*atoms: the atoms to transform."""
+        :param *atoms: the atoms to transform."""
 
         locations = [list(a) for a in atoms]
         output = np.dot(np.array(matrix), np.array(locations).transpose())
@@ -1035,7 +1083,7 @@ class Atom:
 
         :param float angle: the angle to rotate by in radians.
         :param str axis: the axis to rotate around (x, y, or z).
-        :param \*atoms: the atoms to rotate."""
+        :param *atoms: the atoms to rotate."""
 
         try:
             axis = [1 if i == "xyz".index(axis) else 0 for i in range(3)]
@@ -1236,7 +1284,8 @@ class Atom:
          [v1 - v2 for v1, v2 in zip(atom.location, self.location)
         ] for atom in (atom1, atom2)]
         normalized = [np.linalg.norm(v) for v in vectors]
-        if 0 in normalized: return 0
+        if 0 in normalized:
+            return 0
         vectors = [v / n for v, n in zip(vectors, normalized)]
         return np.arccos(np.clip(np.dot(vectors[0], vectors[1]), -1.0, 1.0))
     
@@ -1271,7 +1320,8 @@ class Atom:
 
         :rtype: ``Chain``"""
 
-        if self._het: return self._het.chain
+        if self._het:
+            return self._het.chain
 
 
     @property
@@ -1281,7 +1331,8 @@ class Atom:
 
         :rtype: ``Model``"""
 
-        if self.chain: return self.chain.model
+        if self.chain:
+            return self.chain.model
 
 
     def nearby_atoms(self, cutoff, *args, **kwargs):
@@ -1298,7 +1349,8 @@ class Atom:
             )
             try:
                 atoms.remove(self)
-            except: pass
+            except KeyError:
+                pass
             return atoms
         return set()
 
@@ -1317,10 +1369,12 @@ class Atom:
         atoms = self.nearby_atoms(*args, **kwargs)
         structures = set()
         for atom in atoms:
-            if atom.het is not None: structures.add(atom.het)
+            if atom.het is not None:
+                structures.add(atom.het)
         try:
             structures.remove(self.het)
-        except: pass
+        except KeyError:
+            pass
         if not residues:
             structures = {s for s in structures if not isinstance(s, Residue)}
         if not ligands:
@@ -1340,10 +1394,12 @@ class Atom:
         atoms = self.nearby_atoms(*args, **kwargs)
         chains = set()
         for atom in atoms:
-            if atom.chain is not None: chains.add(atom.chain)
+            if atom.chain is not None:
+                chains.add(atom.chain)
         try:
             chains.remove(self.chain)
-        except: pass
+        except KeyError:
+            pass
         return chains
 
 
@@ -1354,14 +1410,13 @@ class Atom:
         :param float dx: The distance to move in the x direction.
         :param float dy: The distance to move in the y direction.
         :param float dz: The distance to move in the z direction.
-        :param int trim: The amount of rounding to do to the atom's coordinates\
-        after translating - the default is 12 decimal places but this can be\
-        set to ``None`` if no rounding is to be done."""
+        :param int trim: The amount of rounding to do to the atom's coordinates after translating - the default is 12 decimal places but this can be set to ``None`` if no rounding is to be done."""
 
         try:
-            _,_,_ = dx
+            _, _, _ = dx
             vector = dx
-        except TypeError: vector = (dx, dy, dz)
+        except TypeError:
+            vector = (dx, dy, dz)
         Atom.translate_atoms(vector, self)
         self.trim(trim)
 
@@ -1370,12 +1425,8 @@ class Atom:
         """Transforms the atom using a 3x3 matrix supplied. This is useful if
         the :py:meth:`.rotate` method isn't powerful enough for your needs.
 
-        :param array matrix: A NumPy matrix representing the transformation.\
-        You can supply a list of lists if you like and it will be converted to\
-        a NumPy matrix.
-        :param int trim: The amount of rounding to do to the atom's coordinates\
-        after transforming - the default is 12 decimal places but this can be\
-        set to ``None`` if no rounding is to be done."""
+        :param array matrix: A NumPy matrix representing the transformation. You can supply a list of lists if you like and it will be converted to a NumPy matrix.
+        :param int trim: The amount of rounding to do to the atom's coordinates after transforming - the default is 12 decimal places but this can be set to ``None`` if no rounding is to be done."""
 
         Atom.transform_atoms(matrix, self)
         self.trim(trim)
@@ -1387,9 +1438,7 @@ class Atom:
 
         :param float angle: The angle to rotate by in radians.
         :param str axis: the axis to rotate around.
-        :param int trim: The amount of rounding to do to the atom's coordinates\
-        after rotating - the default is 12 decimal places but this can be\
-        set to ``None`` if no rounding is to be done."""
+        :param int trim: The amount of rounding to do to the atom's coordinates after rotating - the default is 12 decimal places but this can be set to ``None`` if no rounding is to be done."""
 
         Atom.rotate_atoms(angle, axis, self)
         self.trim(trim)
@@ -1409,8 +1458,7 @@ class Atom:
         """Rounds the coordinate values to a given number of decimal places.
         Useful for removing floating point rounding errors after transformation.
 
-        :param int places: The number of places to round the coordinates to. If\
-        ``None``, no rounding will be done."""
+        :param int places: The number of places to round the coordinates to. If ``None``, no rounding will be done."""
 
         if places is not None:
             self._location = np.round(self._location, places)

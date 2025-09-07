@@ -47,7 +47,7 @@ def attribute_matches_value(attribute, value, components):
     :rtype: ``bool``"""
 
     if components[-1] == "regex":
-        return re.match(value, attribute)
+        return re.match(value, str(attribute))
     possible_magic = f"__{components[-1]}__"
     if hasattr(attribute, possible_magic):
         return getattr(attribute, possible_magic)(value)
@@ -63,8 +63,7 @@ def filter_objects(objects, key, value):
 
     :param StructreSet objects: the dictionary of objects - the keys are\
     unimportant.
-    :param str key: the attribute to search. This can be an attribute of the\
-    object, or attr__regex, or attr__gt etc.
+    :param str key: the attribute to search. This can be an attribute of the object, or attr__regex, or attr__gt etc.
     :param value: the value that the attribute must have.
     :rtype: ``dict``"""
 
@@ -85,8 +84,7 @@ def query(func, tuple_=False):
     use a positional argument to search by ID.
 
     :param func: the function to modify.
-    :param bool tuple_: if ``True``, objects will be returned in a tuple not a\
-    set.
+    :param bool tuple_: if ``True``, objects will be returned in a tuple not a set.
     :rtype: ``function``"""
 
     def structures(self, *args, **kwargs):
@@ -156,7 +154,7 @@ class StructureSet:
 
     They're basically sets optimised to lookup things by ID.
 
-    :param \* args: the structures that will make up the StructureSet."""
+    :param *args: the structures that will make up the StructureSet."""
 
     def __init__(self, *args):
         self._d = {}

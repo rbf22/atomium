@@ -39,6 +39,8 @@ ruff = "*"
 pylint = { version = "*", python = ">=3.7" }
 mypy = "*"
 deptry = { version = "*", python = ">=3.7" }
+matplotlib = "*"
+biopython = "*"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
