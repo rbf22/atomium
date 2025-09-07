@@ -7,6 +7,10 @@ import warnings
 from scipy.spatial.distance import cdist
 from collections import Counter, defaultdict
 from .base import StructureClass, query, StructureSet
+from .constants import (
+ COVALENT_RADII, METALS, ATOMIC_NUMBER, PERIODIC_TABLE,
+ CHI_ANGLES, CODES, FULL_NAMES
+)
 
 class AtomStructure:
     """A structure made of atoms. This contains various useful methods that rely
@@ -293,6 +297,19 @@ class AtomStructure:
                 yield {atoms[a_index], atoms[o_index]}
 
 
+    def infer_bonds(self, tolerance=0.4):
+        """Automatically identifies and creates bonds between atoms in the
+        structure based on their distance and covalent radii.
+
+        :param float tolerance: a tolerance to add to the covalent radii sum.
+         The default is 0.4."""
+
+        for atom1, atom2 in self.pairwise_atoms():
+            max_dist = atom1.covalent_radius + atom2.covalent_radius + tolerance
+            if atom1.distance_to(atom2) < max_dist:
+                atom1.bond(atom2)
+
+
     def nearby_atoms(self, *args, **kwargs):
         """Returns all atoms within a given distance of this structure,
         excluding the structure's own atoms.
@@ -374,15 +391,16 @@ class AtomStructure:
         self.trim(trim)
 
 
-    def rotate(self, angle, axis, trim=12):
+    def rotate(self, angle, axis, point=(0, 0, 0), trim=12):
         """Rotates the structure about an axis, updating all atom coordinates
         accordingly.
 
         :param Number angle: The angle in radians.
         :param str axis: The axis to rotate around. Can only be 'x', 'y' or 'z'.
+        :param point: a point on the axis of rotation.
         :param int trim: The amount of rounding to do to the atoms' coordinates after translating - the default is 12 decimal places but this can be set to ``None`` if no rounding is to be done."""
 
-        Atom.rotate_atoms(angle, axis, *self.atoms())
+        Atom.rotate_atoms(angle, axis, *self.atoms(), point=point)
         self.trim(trim)
 
 
@@ -440,8 +458,6 @@ class Het(AtomStructure):
     instantiated directly, there is an initaliser method for setting up the
     atom dictionary."""
 
-    from atomium import data as __data
-
     def __init__(self, id, name, full_name, *atoms):
         """Creates a Het.
 
@@ -471,7 +487,7 @@ class Het(AtomStructure):
 
         if self._full_name:
             return self._full_name
-        return self.__data.FULL_NAMES.get(self._name, self._name)
+        return FULL_NAMES.get(self._name, self._name)
     
 
     @full_name.setter
@@ -850,8 +866,6 @@ class Ligand(Molecule, Het, metaclass=StructureClass):
 class Residue(Het, metaclass=StructureClass):
     """A small subunit within a chain."""
 
-    from atomium import data as __data
-
     def __init__(self, *atoms, **kwargs):
         """Creates a Residue.
 
@@ -929,7 +943,7 @@ class Residue(Het, metaclass=StructureClass):
 
         :rtype: ``str``"""
 
-        return self.__data.CODES.get(self._name, "X")
+        return CODES.get(self._name, "X")
 
 
     @property
@@ -956,6 +970,163 @@ class Residue(Het, metaclass=StructureClass):
                 if self in strand:
                     return True
         return False
+
+
+    @property
+    def phi(self):
+        """Returns the phi angle of the residue. This is the dihedral angle
+        defined by the C atom of the previous residue, and the N, C-alpha, and
+        C atoms of this residue. It will be ``None`` if the residue is the
+        first in the chain.
+
+        :rtype: ``float``"""
+
+        if self.previous:
+            try:
+                c_prev = self.previous.atom(name="C")
+                n, ca, c = self.atom(name="N"), self.atom(name="CA"), self.atom(name="C")
+                return Atom.dihedral(c_prev, n, ca, c)
+            except AttributeError:
+                return None
+
+
+    @property
+    def psi(self):
+        """Returns the psi angle of the residue. This is the dihedral angle
+        defined by the N, C-alpha, and C atoms of this residue, and the N atom
+        of the next residue. It will be ``None`` if the residue is the last
+        in the chain.
+
+        :rtype: ``float``"""
+
+        if self.next:
+            try:
+                n_next = self.next.atom(name="N")
+                n, ca, c = self.atom(name="N"), self.atom(name="CA"), self.atom(name="C")
+                return Atom.dihedral(n, ca, c, n_next)
+            except AttributeError:
+                return None
+
+
+    @property
+    def omega(self):
+        """Returns the omega angle of the residue. This is the dihedral angle
+        defined by the C-alpha and C atoms of this residue, and the N and
+        C-alpha atoms of the next residue. It will be ``None`` if the residue
+        is the last in the chain.
+
+        :rtype: ``float``"""
+
+        if self.next:
+            try:
+                n_next, ca_next = self.next.atom(name="N"), self.next.atom(name="CA")
+                ca, c = self.atom(name="CA"), self.atom(name="C")
+                return Atom.dihedral(ca, c, n_next, ca_next)
+            except AttributeError:
+                return None
+
+
+    def set_phi(self, angle):
+        """Sets the phi angle of the residue to the given value, by rotating
+        the relevant downstream atoms.
+
+        :param float angle: The angle to set, in degrees."""
+
+        from .utilities import find_downstream_atoms
+        current_angle = self.phi
+        if current_angle is None: return
+
+        delta = math.radians(angle - current_angle)
+        n = self.atom(name="N")
+        ca = self.atom(name="CA")
+        if n is None or ca is None: return
+
+        axis = np.array(ca.location) - np.array(n.location)
+        point = n.location
+        atoms_to_rotate = find_downstream_atoms(ca, n)
+        atoms_to_rotate = {a for a in atoms_to_rotate if a is not ca}
+        Atom.rotate_atoms(delta, axis, *atoms_to_rotate, point=point)
+
+
+    def set_psi(self, angle):
+        """Sets the psi angle of the residue to the given value, by rotating
+        the relevant downstream atoms.
+
+        :param float angle: The angle to set, in degrees."""
+
+        from .utilities import find_downstream_atoms
+        current_angle = self.psi
+        if current_angle is not None:
+            delta = math.radians(angle - current_angle)
+            ca = self.atom(name="CA")
+            c = self.atom(name="C")
+            if ca and c:
+                axis = np.array(c.location) - np.array(ca.location)
+                point = ca.location
+                atoms_to_rotate = find_downstream_atoms(c, ca)
+                atoms_to_rotate = {a for a in atoms_to_rotate if a is not c}
+                Atom.rotate_atoms(delta, axis, *atoms_to_rotate, point=point)
+
+
+    def set_omega(self, angle):
+        """Sets the omega angle of the residue to the given value, by rotating
+        the relevant downstream atoms.
+
+        :param float angle: The angle to set, in degrees."""
+
+        from .utilities import find_downstream_atoms
+        current_angle = self.omega
+        if current_angle is not None:
+            delta = math.radians(angle - current_angle)
+            c = self.atom(name="C")
+            n_next = self.next.atom(name="N")
+            if c and n_next:
+                axis = np.array(n_next.location) - np.array(c.location)
+                point = c.location
+                atoms_to_rotate = find_downstream_atoms(n_next, c)
+                atoms_to_rotate = {a for a in atoms_to_rotate if a is not n_next}
+                Atom.rotate_atoms(delta, axis, *atoms_to_rotate, point=point)
+
+
+    def set_chi(self, n, angle):
+        """Sets the nth chi angle of the residue to the given value, by rotating
+        the relevant downstream atoms.
+
+        :param int n: The chi angle to set (1-5).
+        :param float angle: The angle to set, in degrees."""
+
+        from .utilities import find_downstream_atoms
+        current_angle = self.chi(n)
+        if current_angle is not None:
+            delta = math.radians(angle - current_angle)
+
+            atom_names = CHI_ANGLES[self.name][n - 1]
+            b, c = self.atom(name=atom_names[1]), self.atom(name=atom_names[2])
+
+            if b and c:
+                axis = np.array(c.location) - np.array(b.location)
+                point = b.location
+                atoms_to_rotate = find_downstream_atoms(c, b)
+                atoms_to_rotate = {a for a in atoms_to_rotate if a is not c}
+                Atom.rotate_atoms(delta, axis, *atoms_to_rotate, point=point)
+
+
+    def chi(self, n):
+        """Returns the nth chi angle of the residue. This is the dihedral angle
+        of the side chain. It will be ``None`` if the residue does not have that
+        chi angle, or if any of the required atoms are missing.
+
+        :param int n: The chi angle to get (1-5).
+        :rtype: ``float``"""
+
+        if self.name in CHI_ANGLES and 1 <= n <= len(CHI_ANGLES[self.name]):
+            atom_names = CHI_ANGLES[self.name][n - 1]
+            try:
+                atoms = [self.atom(name=name) for name in atom_names]
+                if None in atoms: return None
+                return Atom.dihedral(*atoms)
+            except AttributeError:
+                return None
 
 
     def copy(self, id=None, atom_ids=None):
@@ -994,8 +1165,6 @@ class Atom:
     Atoms are the building blocks of all structures in atomium.
 
     Two atoms are equal if they have the same properties (not including ID)."""
-
-    from atomium import data as __data
 
     __slots__ = [
      "_element", "_location", "_id", "_name", "_charge",
@@ -1078,28 +1247,39 @@ class Atom:
 
 
     @staticmethod
-    def rotate_atoms(angle, axis, *atoms, **kwargs):
+    def rotate_atoms(angle, axis, *atoms, point=(0, 0, 0), **kwargs):
         """Rotates multiple atoms using an axis and an angle.
 
         :param float angle: the angle to rotate by in radians.
-        :param str axis: the axis to rotate around (x, y, or z).
-        :param *atoms: the atoms to rotate."""
+        :param str or vector axis: the axis to rotate around. Can be 'x', 'y',
+         'z', or a vector.
+        :param *atoms: the atoms to rotate.
+        :param point: a point on the axis of rotation."""
 
         try:
             axis = [1 if i == "xyz".index(axis) else 0 for i in range(3)]
-        except ValueError:
-            raise ValueError("'{}' is not a valid axis".format(axis))
+        except (ValueError, TypeError):
+            try:
+                x, y, z = axis
+            except:
+                raise ValueError("'{}' is not a valid axis".format(axis))
+
+        point = np.array(point)
+        Atom.translate_atoms(point * -1, *atoms)
+
         axis = np.asarray(axis)
         axis = axis / np.sqrt(np.dot(axis, axis))
         a = np.cos(angle / 2)
         b, c, d = -axis * np.sin(angle / 2)
         aa, bb, cc, dd = a * a, b * b, c * c, d * d
         bc, ad, ac, ab, bd, cd = b * c, a * d, a * c, a * b, b * d, c * d
-        Atom.transform_atoms(np.array([
+        matrix = np.array([
          [aa + bb - cc - dd, 2 * (bc + ad), 2 * (bd - ac)],
          [2 * (bc - ad), aa + cc - bb - dd, 2 * (cd + ab)],
          [2 * (bd + ac), 2 * (cd - ab), aa + dd - bb - cc]
-        ]), *atoms, **kwargs)
+        ])
+        Atom.transform_atoms(matrix, *atoms, **kwargs)
+        Atom.translate_atoms(point, *atoms)
 
 
     @property
@@ -1204,7 +1384,7 @@ class Atom:
 
         :rtype: ``float``"""
 
-        return self.__data.PERIODIC_TABLE.get(self._element.upper(), 0)
+        return PERIODIC_TABLE.get(self._element.upper(), 0)
     
 
     @property
@@ -1217,7 +1397,7 @@ class Atom:
 
         :rtype: ``int``"""
 
-        return self.__data.ATOMIC_NUMBER.get(self._element.upper(), 0)
+        return ATOMIC_NUMBER.get(self._element.upper(), 0)
 
 
     @property
@@ -1230,7 +1410,7 @@ class Atom:
 
         :rtype: ``float``"""
 
-        return self.__data.COVALENT_RADII.get(self._element.upper(), 0)
+        return COVALENT_RADII.get(self._element.upper(), 0)
 
 
     @property
@@ -1241,7 +1421,7 @@ class Atom:
 
         :rtype: ``bool``"""
 
-        return self._element.upper() in self.__data.METALS
+        return self._element.upper() in METALS
 
 
     @property
@@ -1288,6 +1468,29 @@ class Atom:
             return 0
         vectors = [v / n for v, n in zip(vectors, normalized)]
         return np.arccos(np.clip(np.dot(vectors[0], vectors[1]), -1.0, 1.0))
+
+
+    @staticmethod
+    def dihedral(p1, p2, p3, p4):
+        """Returns the dihedral angle in degrees between four points.
+
+        :param Atom p1: The first point.
+        :param Atom p2: The second point.
+        :param Atom p3: The third point.
+        :param Atom p4: The fourth point.
+        :rtype: ``float``"""
+
+        p1 = np.array(p1.location)
+        p2 = np.array(p2.location)
+        p3 = np.array(p3.location)
+        p4 = np.array(p4.location)
+        v1 = p2 - p1
+        v2 = p3 - p2
+        v3 = p4 - p3
+        n1 = np.cross(v1, v2)
+        n2 = np.cross(v2, v3)
+        angle = np.degrees(np.arctan2(np.dot(v1, n2), np.dot(n1, n2)))
+        return angle
     
 
     def copy(self, id=None):
@@ -1432,15 +1635,16 @@ class Atom:
         self.trim(trim)
 
 
-    def rotate(self, angle, axis, trim=12):
+    def rotate(self, angle, axis, point=(0, 0, 0), trim=12):
         """Rotates the atom by an angle in radians, around one of the the three
         axes.
 
         :param float angle: The angle to rotate by in radians.
         :param str axis: the axis to rotate around.
+        :param point: a point on the axis of rotation.
         :param int trim: The amount of rounding to do to the atom's coordinates after rotating - the default is 12 decimal places but this can be set to ``None`` if no rounding is to be done."""
 
-        Atom.rotate_atoms(angle, axis, self)
+        Atom.rotate_atoms(angle, axis, self, point=point)
         self.trim(trim)
 
 

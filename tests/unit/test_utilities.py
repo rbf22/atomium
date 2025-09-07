@@ -1,10 +1,29 @@
 from unittest import TestCase
 from unittest.mock import Mock, patch, MagicMock
+from atomium.structures import Atom
 from atomium.utilities import (
  open, fetch, fetch_over_ssh, parse_string, get_parse_functions, save,
  mmcif_string_to_mmcif_dict, mmcif_dict_to_data_dict, mmtf_bytes_to_mmtf_dict,
- mmtf_dict_to_data_dict, pdb_string_to_pdb_dict, pdb_dict_to_data_dict
+ mmtf_dict_to_data_dict, pdb_string_to_pdb_dict, pdb_dict_to_data_dict,
+ find_downstream_atoms
 )
+
+class DownstreamAtomFindingTests(TestCase):
+
+    def test_can_find_downstream_atoms(self):
+        a1 = Atom("C", 0, 0, 0, 1, "C1", 0, 0, [])
+        a2 = Atom("C", 0, 0, 0, 2, "C2", 0, 0, [])
+        a3 = Atom("C", 0, 0, 0, 3, "C3", 0, 0, [])
+        a4 = Atom("C", 0, 0, 0, 4, "C4", 0, 0, [])
+        a5 = Atom("C", 0, 0, 0, 5, "C5", 0, 0, [])
+        a1.bond(a2)
+        a2.bond(a3)
+        a3.bond(a4)
+        a3.bond(a5)
+
+        downstream = find_downstream_atoms(a3, a2)
+        self.assertEqual(downstream, {a3, a4, a5})
+
 
 class OpeningTests(TestCase):
 

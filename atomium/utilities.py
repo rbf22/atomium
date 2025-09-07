@@ -172,3 +172,24 @@ def save(filestring, path):
     except Exception:
         with builtins.open(path, "wb") as f:
             f.write(filestring)
+
+
+def find_downstream_atoms(start_atom, bond_atom):
+    """Performs a graph traversal (BFS) to find all atoms connected to a starting
+    atom, without crossing a specific bond.
+
+    :param Atom start_atom: The atom to start the traversal from.
+    :param Atom bond_atom: The atom that defines the bond not to be crossed.
+    :returns: ``set`` of atoms."""
+
+    queue = [start_atom]
+    visited = {start_atom, bond_atom}
+    downstream_atoms = set()
+    while queue:
+        current_atom = queue.pop(0)
+        downstream_atoms.add(current_atom)
+        for neighbor in current_atom.bonded_atoms:
+            if neighbor not in visited:
+                visited.add(neighbor)
+                queue.append(neighbor)
+    return downstream_atoms
