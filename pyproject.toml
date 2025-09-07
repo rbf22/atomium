@@ -14,20 +14,20 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Topic :: Scientific/Engineering :: Chemistry",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.6",
-    "Programming Language :: Python :: 3.7",
-    "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
 ]
 
 [tool.poetry.dependencies]
-python = ">=3.6"
+python = ">=3.9"
 numpy = "*"
 requests = "*"
 rmsd = "*"
 paramiko = "*"
-msgpack = "0.6.1"
-valerius = "0.2"
+msgpack = "*"
+valerius = "*"
 
 [tool.poetry.group.dev.dependencies]
 python-coveralls = "*"
@@ -36,11 +36,12 @@ sphinx_rtd_theme = "*"
 tqdm = "*"
 pytest = "*"
 ruff = "*"
-pylint = { version = "*", python = ">=3.7" }
+pylint = "*"
 mypy = "*"
-deptry = { version = "*", python = ">=3.7" }
+deptry = "*"
 matplotlib = "*"
 biopython = "*"
+pytest-cov = "*"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

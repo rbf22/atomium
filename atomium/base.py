@@ -50,8 +50,10 @@ def attribute_matches_value(attribute, value, components):
         return re.match(value, str(attribute))
     possible_magic = f"__{components[-1]}__"
     if hasattr(attribute, possible_magic):
-        return getattr(attribute, possible_magic)(value)
-    return getattr(attribute, "__eq__")(value)
+        result = getattr(attribute, possible_magic)(value)
+    else:
+        result = getattr(attribute, "__eq__")(value)
+    return True if result is NotImplemented else result
 
 
 def filter_objects(objects, key, value):
