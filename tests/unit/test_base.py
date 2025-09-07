@@ -1,6 +1,15 @@
 from unittest import TestCase
 from unittest.mock import Mock, patch, MagicMock
-from atomium.base import *
+from atomium.base import (
+    get_object_from_filter,
+    get_object_attribute_from_filter,
+    attribute_matches_value,
+    filter_objects,
+    query,
+    getone,
+    StructureClass,
+    StructureSet,
+)
 
 class ObjectFromFilterTests(TestCase):
 
@@ -127,13 +136,15 @@ class QueryDecoratorTests(TestCase):
 class GetOneDecoratorTests(TestCase):
 
     def test_can_get_one(self):
-        f = lambda s: [4, 6, 7]
+        def f(s):
+            return [4, 6, 7]
         f = getone(f)
         self.assertEqual(f(self), 4)
 
 
     def test_can_get_mone(self):
-        f = lambda s: []
+        def f(s):
+            return []
         f = getone(f)
         self.assertEqual(f(self), None)
 

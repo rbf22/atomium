@@ -1,6 +1,16 @@
 from unittest import TestCase
 from unittest.mock import Mock, patch, MagicMock
-from atomium.utilities import *
+from atomium.utilities import (
+    open,
+    fetch,
+    fetch_over_ssh,
+    parse_string,
+    get_parse_functions,
+    save,
+)
+from atomium.mmcif import mmcif_string_to_mmcif_dict, mmcif_dict_to_data_dict
+from atomium.mmtf import mmtf_bytes_to_mmtf_dict, mmtf_dict_to_data_dict
+from atomium.pdb import pdb_string_to_pdb_dict, pdb_dict_to_data_dict
 
 class OpeningTests(TestCase):
 
@@ -82,7 +92,7 @@ class FetchingTests(TestCase):
     def test_can_handle_no_results(self):
         self.mock_get.return_value.status_code = 400
         with self.assertRaises(ValueError):
-            f = fetch("1ABC", 1, b=2)
+            fetch("1ABC", 1, b=2)
 
 
 class FetchingOverSshTests(TestCase):
@@ -135,7 +145,8 @@ class FetchingOverSshTests(TestCase):
         self.mock_client.set_missing_host_key_policy.side_effect = Exception
         try:
             fetch_over_ssh("HOST", "USER", "/path/")
-        except: pass
+        except Exception:
+            pass
         self.mock_client.close.assert_called_with()
 
 

@@ -26,9 +26,11 @@ class AtomStructure:
         try:
             mapping = self.pairing_with(other)
             for atom1, atom2 in mapping.items():
-                if not atom1 == atom2: return False
+                if not atom1 == atom2:
+                    return False
             return True
-        except: return False
+        except Exception:
+            return False
 
 
     def __hash__(self):
@@ -145,8 +147,8 @@ class AtomStructure:
             atoms.remove(id_atoms[id_])
             other_atoms.remove(id_other_atoms[id_])
         atoms, other_atoms = list(atoms), list(other_atoms)
-        for l in atoms, other_atoms:
-            l.sort(key=lambda a: (
+        for atom_list in atoms, other_atoms:
+            atom_list.sort(key=lambda a: (
              a._id, a._element, a._name, id(a)
             ))
         return {**pair, **{a1: a2 for a1, a2 in zip(atoms, other_atoms)}}
@@ -186,8 +188,10 @@ class AtomStructure:
             coordinates = [loc[dimension] for loc in atom_locations]
             min_, max_ = min(coordinates) - margin, max(coordinates) + margin
             values = [0]
-            while values[0] > min_: values.insert(0, values[0] - size)
-            while values[-1] < max_: values.append(values[-1] + size)
+            while values[0] > min_:
+                values.insert(0, values[0] - size)
+            while values[-1] < max_:
+                values.append(values[-1] + size)
             dimension_values.append(values)
         for x in dimension_values[0]:
             for y in dimension_values[1]:
@@ -205,7 +209,8 @@ class AtomStructure:
                 unique_ids = set(ids)
                 if len(ids) != len(unique_ids):
                     warnings.warn(f"{objects} have duplicate IDs")
-            except AttributeError: pass
+            except AttributeError:
+                pass
 
 
     def save(self, path):
@@ -345,7 +350,8 @@ class AtomStructure:
         try:
             _,_,_ = dx
             vector = dx
-        except TypeError: vector = (dx, dy, dz)
+        except TypeError:
+            vector = (dx, dy, dz)
         Atom.translate_atoms(vector, *self.atoms())
         self.trim(trim)
 
@@ -433,7 +439,8 @@ class Het(AtomStructure):
     def __init__(self, id, name, full_name, *atoms):
         AtomStructure.__init__(self, id, name)
         self._full_name = full_name
-        for atom in atoms: atom._het = self
+        for atom in atoms:
+            atom._het = self
         self._atoms = StructureSet(*atoms)
 
 
@@ -449,7 +456,8 @@ class Het(AtomStructure):
 
         :rtype: ``str``"""
 
-        if self._full_name: return self._full_name
+        if self._full_name:
+            return self._full_name
         return self.__data.FULL_NAMES.get(self._name, self._name)
     
 
@@ -505,9 +513,11 @@ class Model(AtomStructure, metaclass=StructureClass):
 
     def __repr__(self):
         chains = "{} chains".format(len(self._chains))
-        if len(self._chains) == 1: chains = chains[:-1]
+        if len(self._chains) == 1:
+            chains = chains[:-1]
         ligands = "{} ligands".format(len(self._ligands))
-        if len(self._ligands) == 1: ligands = ligands[:-1]
+        if len(self._ligands) == 1:
+            ligands = ligands[:-1]
         return "<Model ({}, {})>".format(chains, ligands)
 
 
@@ -575,7 +585,7 @@ class Model(AtomStructure, metaclass=StructureClass):
         for mol in self.molecules():
             try:
                 atoms.update(mol._atoms.structures)
-            except:
+            except Exception:
                 for res in mol._residues.structures:
                     atoms.update(res._atoms.structures)
         return StructureSet(*atoms)
@@ -623,7 +633,8 @@ class Chain(Molecule, metaclass=StructureClass):
          self, kwargs.get("id"), kwargs.get("name"), kwargs.get("internal_id")
         )
         self._sequence = sequence
-        for res in residues: res._chain = self
+        for res in residues:
+            res._chain = self
         self._residues = StructureSet(*residues)
         self._model = None
         self._helices = helices or []
@@ -748,7 +759,7 @@ class Chain(Molecule, metaclass=StructureClass):
         :rtype: ``set``"""
 
         return StructureSet() if self._model is None else StructureSet(
-         *[l for l in self._model._ligands.structures if l._chain is self]
+         *[ligand for ligand in self._model._ligands.structures if ligand._chain is self]
         )
 
 
@@ -854,7 +865,8 @@ class Residue(Het, metaclass=StructureClass):
     @next.setter
     def next(self, next):
         if next is None:
-            if self._next: self._next._previous = None
+            if self._next:
+                self._next._previous = None
             self._next = None
         elif next is self:
             raise ValueError("Cannot link {} to itself".format(self))
@@ -879,7 +891,8 @@ class Residue(Het, metaclass=StructureClass):
     @previous.setter
     def previous(self, previous):
         if previous is None:
-            if self._previous: self._previous._next = None
+            if self._previous:
+                self._previous._next = None
             self._previous = None
         elif previous is self:
             raise ValueError("Cannot link {} to itself".format(self))
@@ -906,7 +919,8 @@ class Residue(Het, metaclass=StructureClass):
 
         if self.chain:
             for helix in self.chain.helices:
-                if self in helix: return True
+                if self in helix:
+                    return True
         return False
     
 
@@ -918,7 +932,8 @@ class Residue(Het, metaclass=StructureClass):
 
         if self.chain:
             for strand in self.chain.strands:
-                if self in strand: return True
+                if self in strand:
+                    return True
         return False
 
 
@@ -948,7 +963,8 @@ class Residue(Het, metaclass=StructureClass):
 
         try:
             return self._chain._model
-        except AttributeError: return None
+        except AttributeError:
+            return None
 
 
 
@@ -993,11 +1009,14 @@ class Atom:
 
 
     def __eq__(self, other):
-        if not isinstance(other, Atom): return False
+        if not isinstance(other, Atom):
+            return False
         for attr in self.__slots__:
             if attr not in ("_id", "_het", "_bonded_atoms", "_location"):
-                if getattr(self, attr) != getattr(other, attr): return False
-            if list(self._location) != list(other._location): return False
+                if getattr(self, attr) != getattr(other, attr):
+                    return False
+            if list(self._location) != list(other._location):
+                return False
         return True
 
 
@@ -1236,7 +1255,8 @@ class Atom:
          [v1 - v2 for v1, v2 in zip(atom.location, self.location)
         ] for atom in (atom1, atom2)]
         normalized = [np.linalg.norm(v) for v in vectors]
-        if 0 in normalized: return 0
+        if 0 in normalized:
+            return 0
         vectors = [v / n for v, n in zip(vectors, normalized)]
         return np.arccos(np.clip(np.dot(vectors[0], vectors[1]), -1.0, 1.0))
     
@@ -1271,7 +1291,8 @@ class Atom:
 
         :rtype: ``Chain``"""
 
-        if self._het: return self._het.chain
+        if self._het:
+            return self._het.chain
 
 
     @property
@@ -1281,7 +1302,8 @@ class Atom:
 
         :rtype: ``Model``"""
 
-        if self.chain: return self.chain.model
+        if self.chain:
+            return self.chain.model
 
 
     def nearby_atoms(self, cutoff, *args, **kwargs):
@@ -1298,7 +1320,8 @@ class Atom:
             )
             try:
                 atoms.remove(self)
-            except: pass
+            except Exception:
+                pass
             return atoms
         return set()
 
@@ -1317,10 +1340,12 @@ class Atom:
         atoms = self.nearby_atoms(*args, **kwargs)
         structures = set()
         for atom in atoms:
-            if atom.het is not None: structures.add(atom.het)
+            if atom.het is not None:
+                structures.add(atom.het)
         try:
             structures.remove(self.het)
-        except: pass
+        except Exception:
+            pass
         if not residues:
             structures = {s for s in structures if not isinstance(s, Residue)}
         if not ligands:
@@ -1340,10 +1365,12 @@ class Atom:
         atoms = self.nearby_atoms(*args, **kwargs)
         chains = set()
         for atom in atoms:
-            if atom.chain is not None: chains.add(atom.chain)
+            if atom.chain is not None:
+                chains.add(atom.chain)
         try:
             chains.remove(self.chain)
-        except: pass
+        except Exception:
+            pass
         return chains
 
 
@@ -1361,7 +1388,8 @@ class Atom:
         try:
             _,_,_ = dx
             vector = dx
-        except TypeError: vector = (dx, dy, dz)
+        except TypeError:
+            vector = (dx, dy, dz)
         Atom.translate_atoms(vector, self)
         self.trim(trim)
 

@@ -29,15 +29,19 @@ def open(path, *args, **kwargs):
 
     if str(path)[-3:] == ".gz":
         try:
-            with gzip.open(path) as f: filestring = f.read().decode()
-        except:
-            with gzip.open(path, "rt") as f: filestring = f.read()
+            with gzip.open(path) as f:
+                filestring = f.read().decode()
+        except Exception:
+            with gzip.open(path, "rt") as f:
+                filestring = f.read()
         return parse_string(filestring, path[:-3], *args, **kwargs)
     else:
         try:
-            with builtins.open(path) as f: filestring = f.read()
-        except:
-            with builtins.open(path, "rb") as f: filestring = f.read()
+            with builtins.open(path) as f:
+                filestring = f.read()
+        except Exception:
+            with builtins.open(path, "rb") as f:
+                filestring = f.read()
         return parse_string(filestring, path, *args, **kwargs)
 
 
@@ -67,7 +71,8 @@ def fetch(code, *args, **kwargs):
     elif code.endswith(".mmtf"):
         url = "https://mmtf.rcsb.org/v1.0/full/{}".format(code[:-5].lower())
     else:
-        if "." not in code: code += ".cif"
+        if "." not in code:
+            code += ".cif"
         url = "https://files.rcsb.org/view/" + code.lower()
     response = get(url, stream=True)
     if response.status_code == 200:
@@ -162,6 +167,8 @@ def save(filestring, path):
     :param str path: the place to save it."""
     
     try:
-        with builtins.open(path, "w") as f: f.write(filestring)
-    except:
-        with builtins.open(path, "wb") as f: f.write(filestring)
+        with builtins.open(path, "w") as f:
+            f.write(filestring)
+    except Exception:
+        with builtins.open(path, "wb") as f:
+            f.write(filestring)

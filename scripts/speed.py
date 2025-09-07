@@ -7,7 +7,7 @@ import json
 from datetime import datetime
 sys.path.append(os.path.join("..", "atomium"))
 import atomium
-from Bio.PDB import *
+from Bio.PDB import PDBParser
 import matplotlib.pyplot as plt
 
 def get_string(code):
@@ -50,7 +50,7 @@ if len(sys.argv) > 1 and sys.argv[1] == "--rebuild":
                     d["atoms"] = len(pdb.model.atoms())
                 if "models" not in d:
                     d["models"] = len(pdb.models)
-            except:
+            except Exception:
                 d[ext] = None
 
         if d[".pdb"]:
@@ -61,17 +61,18 @@ if len(sys.argv) > 1 and sys.argv[1] == "--rebuild":
                 end = datetime.now()
                 delta = end - start
                 d["biopython"] = delta.total_seconds()
-            except:
+            except Exception:
                 d["biopython"] = None
              
             try:
-                with open("temp.pdb", "w") as f: f.write(string)
+                with open("temp.pdb", "w") as f:
+                    f.write(string)
                 start = datetime.now()
                 subprocess.check_output("scripts/readapdb temp.pdb", shell=True)
                 end = datetime.now()
                 delta = end - start
                 d["bioplib"] = delta.total_seconds()
-            except:
+            except Exception:
                 d["bioplib"] = None
 
         else:
